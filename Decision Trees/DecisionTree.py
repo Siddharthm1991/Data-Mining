@@ -52,6 +52,7 @@ class Node:
     '''Method to calculate to impurity of a node using GINI index
     Return Value : Impurity Value (Float)'''
     def calculateGINI(self, data_idx):
+        # Total number of data indices for which gini impurity is calculated
         tot = len(data_idx)
         if(tot == 0):
             return 0
@@ -59,6 +60,7 @@ class Node:
         ginidata = trainLabel[data_idx]
         totalProb = 0
         for i in classLabels:
+            # Count of each class label for the data indices
             classCount = len(ginidata[ginidata == i])
             totalProb += ((classCount / tot) ** 2)
         return 1 - totalProb
@@ -66,6 +68,7 @@ class Node:
     '''Method to calculate to impurity of a node using entropy
     Return Value : Impurity Value (Float)'''
     def calculateEntropy(self, data_idx):
+        # Total number of data indices for which entropy is calculated
         tot = len(data_idx)
         if (tot == 0):
             return 0
@@ -73,6 +76,7 @@ class Node:
         ginidata = trainLabel[data_idx]
         totalProb = 0
         for i in classLabels:
+            # Count of each class label for the data indices
             classCount = len(ginidata[ginidata == i])
             prob = classCount / tot
             if(prob != 0):
@@ -91,9 +95,16 @@ class Node:
     '''Method to build the tree
     Return Value : Root of decision tree (Node)'''
     def buildDT(self, label, impurity_method, p, nl, data=None):
+        # Initialize the data indices for the root node
         data_idx = np.arange(len(label))
+        # Initialize the root node with the data indices, impurity method and the level of the tree
         DT = self.initNode(data_idx, impurity_method, 0)
+        # Initialize the impurity of the root node
         DT.impurity = DT.calculateIP(DT.data_idx)
+        # Initialize the major class of the labels for the root node
+        rootLabel = trainLabel[data_idx]
+        DT.majorClass = np.bincount(rootLabel).argmax()
+        # Invoke split node to create branch of left child and right child
         DT.splitNode(nl, p)
         return DT
 
@@ -117,28 +128,41 @@ class Node:
             data = trainData[self.data_idx]
             bestleft = 0
             bestright = 0
-            Gains = []
             for i in range(self.nfeatures):
                 featData = data[:, i]
                 totCount = len(featData)
+                # Get the indices who data point is 0 for the feature 'i'
                 leftDataIdx = self.getIndices(self.data_idx , i , 0)
+                # Calculate the impurity for the left child data indices
                 Pleft = self.calculateIP(leftDataIdx)
+                # Get the indices who data point is 1 for the feature 'i'
                 rightDataIdx = self.getIndices(self.data_idx , i , 1)
+                # Calculate the impurity for the right child data indices
                 Pright = self.calculateIP(rightDataIdx)
                 leftCount = len(leftDataIdx)
                 rightCount = len(rightDataIdx)
+                # Calculate total impurity as a weighted average of the left and right child impurities
                 M = (Pleft * (leftCount / totCount)) + (Pright * (rightCount / totCount))
                 Gain = self.impurity - M
-                Gains.append(Gain)
+                '''Check if gain of feature 'i' is greater than maxGain seen so far. The feature with the maximum gain 
+                will be used to split the node'''
                 if Gain > maxGain:
+                    # Update the maximum gain
                     maxGain = Gain
+                    # Feature which gave maximum gain
                     splitFeature = i
+                    # Left child impurity for the feature that gives maximum gain
                     bestleft = Pleft
+                    # Right child impurity for the feature that gives maximum gain
                     bestright = Pright
             self.dfeature = splitFeature
+            # Get the indices who data point is 0 for the feature which gave the maximum gain
             data_idx_left = self.getIndices(self.data_idx , self.dfeature , 0)
+            # Get the indices who data point is 1 for the feature which gave the maximum gain
             data_idx_right = self.getIndices(self.data_idx , self.dfeature , 1)
 
+            '''Initialize the left child and set the value of its impurity and recursively call split node to branch 
+            into its left and right childs'''
             if len(data_idx_left) > 0:
                 self.left_child = self.initNode(data_idx_left, self.impurity_method, self.nlevels + 1)
                 self.left_child.impurity = bestleft
@@ -146,6 +170,8 @@ class Node:
                 self.left_child.majorClass = np.bincount(leftLabel).argmax()
                 self.left_child.splitNode(nl, p)
 
+            '''Initialize the right child and set the value of its impurity and recursively call split node to branch 
+            into its left and right childs'''
             if len(data_idx_right) > 0:
                 self.right_child = self.initNode(data_idx_right, self.impurity_method, self.nlevels + 1)
                 self.right_child.impurity = bestright
@@ -155,23 +181,28 @@ class Node:
 
     '''Method to classify the data from the test dataset and write the output to an output file'''
     def classify(self, test_data, output_file, root):
+        # Open the file in which we need to write the output results
         f = open(output_file , 'w+')
         classifyLabel = []
         for row in test_data:
             temp = root
+            # Traverse the decision tree as long as the node is not null
             while temp:
                 val = row[temp.dfeature]
+                # If the data point of the split feature is 0 move to the left child
                 if val == 0:
                     if(temp.left_child):
                         temp = temp.left_child
                     else:
                         break
+                # If the data point of the split feature is 0 move to the left child
                 else:
                     if(temp.right_child):
                         temp = temp.right_child
                     else:
                         break
             classifyLabel.append(temp.majorClass)
+            # Write the predicted class for the data instance into a file
             f.write(str(temp.majorClass))
             f.write('\n')
         return classifyLabel
@@ -179,25 +210,38 @@ class Node:
 '''Build the confusion matrix using Class 1 as positive and the other classes as negative. Calculate the precision, 
 recall and accuracy'''
 def calcPrecisionRecall(output_file, testLabel):
+    # Create a confusion matrix of size [2 x 2]
     confusionMat = np.zeros((2,2))
+    # Read the data from the output file into which the predictions are written
     outputData = np.genfromtxt(output_file).astype(int)
     for i, val in enumerate(outputData):
+        # Check is the prediction value is positive
         if(val == 1):
+            # If the ground truth is positive then it is a true positive
             if(testLabel[i] == 1):
                 confusionMat[0,0] += 1
+            # The ground truth is negative hence it is false positive
             else:
                 confusionMat[1,0] += 1
+        # Prediction value is negative
         else:
+            # If the ground truth is positive then it is a false negative
             if(testLabel[i] == 1):
                 confusionMat[0,1] += 1
+            # The ground truth is negative and hence it is true negative
             else:
                 confusionMat[1,1] += 1
+
     tp = confusionMat[0,0]
     fn = confusionMat[0,1]
     fp = confusionMat[1,0]
     tn = confusionMat[1,1]
+    print(confusionMat)
+    # Calculate the precision
     precision = tp / (tp + fp)
+    # Calculate the recall
     recall = tp / (tp + fn)
+    # Calculate the accuracy
     accuracy = (tp + tn) / (tp + fp + tn + fn)
     print("Precision : ",precision)
     print("Recall : ",recall)
