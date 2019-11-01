@@ -12,7 +12,7 @@ def readFile(fName):
             l = l.strip()
             data = l.split(" ")
             data = [int(x) for x in data]
-            transactionData.append(data)
+            transactionData.append(set(data))
         i += 1
     return transactionData
 
@@ -88,16 +88,11 @@ def pruneCandidate(lk1ItemSet, fkItemSet, k):
 
 def countSupport(database, lk1ItemSet):
     resDict = {}
-    # print("Candidate Items Length : "+str(len(lk1ItemSet)))
     for entry in lk1ItemSet:
         count = 0
         for v in database:
-            # dEntry = set(v)
-            # cEntry = set(entry)
             if entry.issubset(v):
                 count += 1
-            # if itrCount % 500 == 0:
-                # print(str(itrCount) + " transactions processed")
         resDict[entry] = count
     return resDict
 
@@ -106,7 +101,6 @@ def outputFreqItemsets(supportCount , minsupp):
     for k , v in supportCount.items():
         if v >= minsupp:
             resSet.add(k)
-
     resSet = set(resSet)
     return resSet
 
@@ -114,21 +108,21 @@ def apriori(database, minsupp, output_file):
     k = 2
     f1ItemSet = generate_F1(database, minsupp)
     fkItemSet = f1ItemSet
-    resItemSet = []
+    resItemSet = f1ItemSet
     while len(fkItemSet) > 0:
         startGenerate = time.time()
         lk1ItemSet = generateCandidate(fkItemSet , f1ItemSet, k)
         # lk1ItemSet = generateCandiadateKMinus1(fkItemSet, k)
         endGenerate = time.time() - startGenerate
-        print("Time to generate candidates : " + str(endGenerate))
-        print("Generated "+str(k)+"-itemsets")
+        # print("Time to generate candidates : " + str(endGenerate))
+        # print("Generated "+str(k)+"-itemsets")
         # if k == 3:
         # print("L K + 1")
         # print(lk1ItemSet)
         startPrune = time.time()
         prunedCand = pruneCandidate(lk1ItemSet, fkItemSet, k)
         endPrune = time.time() - startPrune
-        print("Time to prune candidates : " + str(endPrune))
+        # print("Time to prune candidates : " + str(endPrune))
         # print("Pruned " + str(k) + "-itemsets")
         # if k == 3:
         # print("Pruned")
@@ -136,7 +130,7 @@ def apriori(database, minsupp, output_file):
         startSupport = time.time()
         supportCount = countSupport(database, prunedCand)
         endSupport = time.time() - startSupport
-        print("Time to find support counts : "+str(endSupport))
+        # print("Time to find support counts : "+str(endSupport))
         # if k == 3:
         # print(supportCount)
         # print("Calculated support of "+ str(k) + "-itemsets")
