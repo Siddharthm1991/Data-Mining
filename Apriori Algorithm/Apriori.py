@@ -17,7 +17,7 @@ def readFile(fName):
             l = l.strip()
             data = l.split(" ")
             data = [int(x) for x in data]
-            transactionData[i] = data
+            transactionData[i] = set(data)
         # print("I = ",str(i))
         i += 1
     # print(transactionData)
@@ -124,6 +124,7 @@ def apriori(database, minsupp, output_file):
     k = 2
     f1ItemSet = generate_F1(database, minsupp)
     fkItemSet = f1ItemSet
+    resItemSet = []
     while len(fkItemSet) > 0:
         startGenerate = time.time()
         lk1ItemSet = generateCandidate(fkItemSet , f1ItemSet, k)
@@ -185,6 +186,6 @@ if __name__ == '__main__':
     # print('Support : '+str(minSupp))
     import timeit
     print(timeit.timeit(lambda: apriori(database, minSupp, outputFile), number=1))
-    # finish = time.time() - startTime
-    # print(str(finish))
+    finish = time.time() - startTime
+    print(str(finish))
 
