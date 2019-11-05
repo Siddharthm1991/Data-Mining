@@ -11,6 +11,8 @@ def readFile(fName):
     transactionData = []
     i = 0
     for l in open(fName, 'r'):
+        if(i == 0):
+            num_lines , num_items = l.split(" ")
         if(i > 0):
             l = l.strip()
             data = l.split(" ")
@@ -18,7 +20,7 @@ def readFile(fName):
             data = [int(x) for x in data]
             transactionData.append(set(data))
         i += 1
-    return transactionData
+    return num_lines , num_items , transactionData
 
 '''Method to generate the 1-itemsets that have support count greater than the support threshold
 Input Parameters : 
@@ -106,18 +108,33 @@ def eliminateCandidates(supportCount , minsupp):
     resSet = set(resSet)
     return resSet
 
+'''Method to write all the frequent itemsets (F1, F2, .... Fk) to the output file
+Input Parameters:
+resItemSet -> List of all frequent itemsets
+output_file -> Name of the output file
+num_items -> Number of transaction items'''
+def output_freq_itemsets(resItemSet, output_file, num_items):    
+    with open(output_file , 'w') as f:
+        f.write(str(len(resItemSet)) +" "+ str(num_items))        
+        for value in resItemSet:
+            resStr = " ".join(str(x) for x in value)
+            f.write(resStr)
+            f.write('\n')    
+    print("Number of result itemsets : " + str(len(resItemSet)))  
+
 '''Method to implement Apriori Algorithm 
 Input Parameters:
 database -> List of sets of transactions
 minsupp -> Minimum support threshold
 output_file -> Name of output file to write the results to'''
-def apriori(database, minsupp, output_file):
+def apriori(database, minsupp, output_file, num_items):
     k = 2
+    resItemSet = []
     # Generate the F1 itemsets
     f1ItemSet = generate_F1(database, minsupp)
     fkItemSet = f1ItemSet
     # Variable to store the result
-    resItemSet = f1ItemSet
+    resItemSet.extend(f1ItemSet)
     # Run iterations as long as itemsets of length k is not zero
     while len(fkItemSet) > 0:
         # Generate candidate itemsets of length k
@@ -128,18 +145,11 @@ def apriori(database, minsupp, output_file):
         supportCount = countSupport(database, prunedCand)
         # Find the frequent items by selecting itemsets with count greater than the threshold
         fkItemSet = eliminateCandidates(supportCount, minsupp)
-        if(len(fkItemSet) > 0):
-            resItemSet = fkItemSet
+        if(len(fkItemSet) > 0):            
+            resItemSet.extend(fkItemSet)            
         k += 1
-
     # Writing the result itemsets to a output file
-    with open(output_file , 'w') as f:
-        for value in resItemSet:
-            resStr = " ".join(str(x) for x in value)
-            f.write(resStr)
-            f.write('\n')
-
-    print("Number of result itemsets : " + str(len(resItemSet)))
+    output_freq_itemsets(resItemSet, output_file, num_items) 
 
 
 '''Declare the parser and define the name of the command line arguments to be given by the user
@@ -161,9 +171,9 @@ if __name__ == '__main__':
     minSupp = float(args.minsupp)
     # Name of output file to write results to
     outputFile = str(args.output_file)
-    database = readFile(dbName)
+    num_lines , num_items , database = readFile(dbName)    
     minSupp = minSupp * len(database)
-    import timeit
+    # import timeit
     # Print time taken for program to execute
-    print(timeit.timeit(lambda: apriori(database, minSupp, outputFile), number=1))
-
+    # print(timeit.timeit(lambda: apriori(database, minSupp, outputFile, num_items), number=1))
+    apriori(database, minSupp, outputFile, num_items)
